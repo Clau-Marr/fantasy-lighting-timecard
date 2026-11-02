@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fantasy Lighting Time Card</title>
+<meta name="theme-color" content="#1f1a2e">
+<meta name="color-scheme" content="light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Time Card">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<style>
+  :root {
+    --night: #1f1a2e;
+    --night-soft: #352d4a;
+    --glow: #f4b740;
+    --glow-soft: #fdf0d2;
+    --ink: #2a2433;
+    --muted: #665f70;
+    --paper: #f8f5ef;
+    --card: #ffffff;
+    --line: #dcd6cb;
+    --danger: #a32a1f;
+    --danger-soft: #fbeae7;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font: 18px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  [hidden] { display: none !important; }
+
+  header {
+    background: var(--night);
+    color: #fff;
+    padding: calc(16px + env(safe-area-inset-top)) 20px 0;
+  }
+  .header-inner { max-width: 880px; margin: 0 auto; }
+  main { max-width: 920px; margin: 0 auto; }
+  .brand { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; padding-bottom: 14px; }
+  .brand strong { font: 600 26px/1.2 "Iowan Old Style", Palatino, Georgia, serif; color: var(--glow); }
+  .brand span { color: #d9d4e4; }
+  #lang-btn {
+    margin-left: auto;
+    min-height: 48px;
+    padding: 0 18px;
+    border: 2px solid var(--glow);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--glow);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  nav { display: flex; gap: 4px; overflow-x: auto; }
+  nav button {
+    flex: 0 0 auto;
+    min-height: 50px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 10px 10px 0 0;
+    background: transparent;
+    color: #d9d4e4;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  nav button[aria-current="page"] { background: var(--paper); color: var(--ink); }
+
+  main { padding: 20px 20px calc(48px + env(safe-area-inset-bottom)); }
+  h1 { margin: 0 0 14px; font-size: 24px; line-height: 1.25; }
+  h2 { margin: 0 0 10px; font-size: 19px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    margin-bottom: 18px;
+  }
+  .card > p:first-child { margin-top: 0; }
+  .muted { color: var(--muted); font-size: 16px; }
+  .banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--danger-soft);
+    color: var(--danger);
+    font-weight: 600;
+  }
+  .banner span { flex: 1 1 260px; }
+
+  button { font: inherit; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--ink);
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .btn.primary { background: var(--night); border-color: var(--night); color: #fff; }
+  .btn.danger { color: var(--danger); }
+  .btn.small { min-height: 44px; padding: 0 14px; font-size: 16px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  :focus-visible { outline: 3px solid var(--glow); outline-offset: 2px; }
+
+  fieldset { border: 0; margin: 0 0 18px; padding: 0; min-width: 0; }
+  legend, label.field > span { display: block; padding: 0; margin-bottom: 6px; font-weight: 600; }
+  .names { display: flex; flex-wrap: wrap; gap: 10px; }
+  .names label { position: relative; }
+  .names input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .names span {
+    display: flex;
+    align-items: center;
+    min-height: 56px;
+    padding: 0 22px;
+    border: 2px solid var(--line);
+    border-radius: 12px;
+    background: var(--card);
+    font-weight: 600;
+  }
+  .names input:checked + span { background: var(--glow); border-color: var(--glow); color: #231a05; }
+  .names input:focus-visible + span { outline: 3px solid var(--night); outline-offset: 2px; }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; align-items: end; }
+  .pin-field { display: block; max-width: 220px; margin-bottom: 18px; }
+  input[type="date"], input[type="time"], input[type="number"], input[type="text"], select {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    min-height: 54px;
+    padding: 8px 12px;
+    border: 1px solid #a9a29a;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  select { -webkit-appearance: auto; appearance: auto; }
+  /* A plain text box showing dots, because a real password box makes the iPad offer to save the PIN. */
+  input.pin { -webkit-text-security: disc; letter-spacing: .3em; font-size: 22px; }
+  .preview {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 10px;
+    margin: 18px 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--glow-soft);
+    min-height: 54px;
+  }
+  .preview strong { font-size: 24px; font-variant-numeric: tabular-nums; }
+  .form-error { margin: 0 0 14px; color: var(--danger); font-weight: 600; }
+  .form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .form-actions .primary { flex: 1 1 220px; min-height: 58px; font-size: 20px; }
+
+  .week-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .week-bar h1 { margin: 0 auto 0 0; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 10px 8px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; white-space: normal; min-width: 110px; font-weight: 600; }
+  thead th { font-size: 15px; color: var(--muted); font-weight: 600; }
+  tfoot td { border-bottom: 0; font-weight: 700; }
+  .total-col { font-weight: 700; background: var(--glow-soft); }
+  td.zero { color: #a29ba8; }
+
+  .day-title { margin: 18px 0 6px; font-size: 16px; color: var(--muted); font-weight: 600; }
+  .day-title:first-of-type { margin-top: 0; }
+  .entry {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 14px;
+    padding: 10px 0;
+    border-top: 1px solid var(--line);
+  }
+  .entry-main { flex: 1 1 240px; min-width: 0; }
+  .entry-name { font-weight: 600; overflow-wrap: anywhere; }
+  .entry-hours { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .entry-actions { display: flex; gap: 8px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+
+  dialog {
+    width: min(460px, calc(100vw - 32px));
+    border: 0;
+    border-radius: var(--radius);
+    padding: 20px;
+    color: var(--ink);
+  }
+  dialog::backdrop { background: rgba(20, 16, 30, .55); }
+  dialog p { margin: 0 0 14px; white-space: pre-line; }
+  dialog input { margin-bottom: 16px; }
+  /* OK comes first in the page order so the keyboard's Go key means OK, and is drawn on the right. */
+  .dialog-actions { display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 10px; }
+
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    max-width: calc(100vw - 32px);
+    padding: 12px 18px;
+    border-radius: 10px;
+    background: var(--night);
+    color: #fff;
+    font-weight: 600;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <strong>Fantasy Lighting</strong><span data-t="appName"></span>
+      <button type="button" id="lang-btn"></button>
+    </div>
+    <nav aria-label="Pages" id="main-nav">
+      <button type="button" data-page="log" data-t="navLog" aria-current="page"></button>
+      <button type="button" data-page="week" data-t="navWeek"></button>
+      <button type="button" data-page="settings" data-t="navSettings"></button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="banner" id="status-banner" role="alert" hidden>
+    <span id="status-text"></span>
+    <button type="button" class="btn small" id="status-retry" data-t="tryAgain"></button>
+  </div>
+
+  <section id="page-connect" hidden>
+    <h1 data-t="connectTitle"></h1>
+    <div class="card" id="connect-missing" hidden>
+      <p data-t="connectMissing"></p>
+    </div>
+    <form class="card" id="connect-form" novalidate>
+      <p data-t="connectIntro"></p>
+      <label class="field"><span data-t="accessCode"></span><input type="text" id="connect-code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-1234-EF56"></label>
+      <p class="form-error" id="connect-error" role="alert" hidden style="margin-top:14px"></p>
+      <div class="actions"><button type="submit" class="btn primary" id="connect-btn" data-t="connect"></button></div>
+    </form>
+  </section>
+
+  <section id="page-log" hidden>
+    <h1 id="log-title"></h1>
+    <form id="entry-form" class="card" novalidate>
+      <div id="names-message" hidden>
+        <p id="names-message-text"></p>
+        <button type="button" class="btn" id="names-check" data-t="checkAgain"></button>
+      </div>
+      <div id="form-fields">
+        <fieldset>
+          <legend data-t="yourName"></legend>
+          <div class="names" id="name-choices"></div>
+        </fieldset>
+        <label class="field pin-field"><span data-t="yourPin"></span><input type="text" class="pin" id="f-pin" inputmode="numeric" maxlength="4" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+        <div class="form-grid">
+          <label class="field"><span data-t="date"></span><input type="date" id="f-date"></label>
+          <label class="field"><span data-t="startTime"></span><input type="time" id="f-start"></label>
+          <label class="field"><span data-t="endTime"></span><input type="time" id="f-end"></label>
+        </div>
+        <p class="muted" data-t="paidNote" style="margin:12px 0 0"></p>
+        <div class="preview" aria-live="polite"><strong id="preview-hours">–</strong><span id="preview-note" class="muted"></span></div>
+        <p class="form-error" id="form-error" role="alert" hidden></p>
+        <div class="form-actions">
+          <button type="submit" class="btn primary" id="save-btn"></button>
+          <button type="button" class="btn" id="cancel-edit" data-t="cancel" hidden></button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section id="page-week" hidden>
+    <div class="week-bar">
+      <h1 id="week-title"></h1>
+      <button type="button" class="btn small" id="week-prev" data-t="previous"></button>
+      <button type="button" class="btn small" id="week-now" data-t="thisWeek"></button>
+      <button type="button" class="btn small" id="week-next" data-t="next"></button>
+    </div>
+    <p class="form-error" id="week-error" role="alert" hidden></p>
+    <p class="form-error" id="week-bad-rows" role="alert" hidden></p>
+    <div class="card">
+      <h2 data-t="totals"></h2>
+      <div class="table-wrap" id="week-totals"></div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="export-week" data-t="exportWeek"></button>
+      </div>
+    </div>
+    <div class="card">
+      <h2 data-t="allEntries"></h2>
+      <div id="week-entries"></div>
+    </div>
+  </section>
+
+  <section id="page-settings" hidden>
+    <h1 data-t="navSettings"></h1>
+    <div class="card">
+      <h2 data-t="namesAndPins"></h2>
+      <p class="muted" data-t="namesAndPinsHelp"></p>
+      <p id="people-summary"></p>
+    </div>
+    <div class="card">
+      <h2 data-t="payWeek"></h2>
+      <label class="field"><span data-t="weekStartsOn"></span><select id="week-start"></select></label>
+    </div>
+    <div class="card">
+      <h2 data-t="connectionTitle"></h2>
+      <p class="muted" data-t="connectionHelp"></p>
+      <div class="actions"><button type="button" class="btn" id="disconnect-btn" data-t="disconnect"></button></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="dialog">
+  <form method="dialog">
+    <p id="dialog-message"></p>
+    <input type="text" class="pin" id="dialog-pin" aria-labelledby="dialog-message" inputmode="numeric" maxlength="4" autocomplete="off" autocorrect="off" spellcheck="false" hidden>
+    <div class="dialog-actions">
+      <button class="btn primary" id="dialog-ok" value="ok">OK</button>
+      <button class="btn" value="cancel" data-t="cancel"></button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status" hidden></div>
+
+<script>
+// The web address of the Google Sheet's script, pasted in during setup. See the README.
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwCxXNPoxZv3saCECKmemy5K6qpsFHQB4Ohiuxi6ftS3r_587Lar6UvPEjUcrfh2cPetQ/exec';
+const CODE_KEY = 'fantasy-lighting-timecard-access-code';
+const WEEK_START_KEY = 'fantasy-lighting-timecard-week-start';
+const LANG_KEY = 'fantasy-lighting-timecard-language';
+// Always English, because the spreadsheet file goes to payroll in one language.
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const LONG_SHIFT_MINUTES = 16 * 60;
+const REQUEST_TIMEOUT_MS = 30000;
+const REFRESH_AFTER_MS = 60000;
+
+const TEXT = {
+  en: {
+    locale: 'en-US',
+    switchTo: 'Español',
+    appName: 'Time Card',
+    navLog: 'Log hours',
+    navWeek: 'Weekly hours',
+    navSettings: 'Settings',
+    tryAgain: 'Try again',
+    connectTitle: 'Connect to the Google Sheet',
+    connectMissing: "This copy of the app doesn't know which Google Sheet to use yet. Finish the Google Sheet setup steps in the README file first.",
+    connectIntro: 'Enter the access code from the Setup tab of the Google Sheet. You only need to do this once on each device.',
+    accessCode: 'Access code',
+    connect: 'Connect',
+    enterCode: 'Enter the access code.',
+    wrongCode: "That access code doesn't match. Check the Setup tab of the Google Sheet.",
+    checkAgain: 'Check again',
+    logTitle: 'Log your hours',
+    editTitle: 'Change this entry',
+    yourName: 'Your name',
+    yourPin: 'Your PIN',
+    date: 'Date',
+    startTime: 'Start time',
+    endTime: 'End time',
+    paidNote: 'Breaks and lunch are paid, so don\'t subtract them. Just enter when you started and finished.',
+    saveHours: 'Save hours',
+    saveChanges: 'Save changes',
+    saving: 'Saving…',
+    cancel: 'Cancel',
+    enterTimes: 'Enter a start and end time',
+    checkTimes: 'Check the times',
+    endsNextDay: 'The end time is on the next day',
+    hoursCount: '{hours} hours',
+    saved: 'Saved {hours} hours for {name}',
+    loadingNames: 'Loading names from the Google Sheet…',
+    loadingSheet: 'Loading from the Google Sheet…',
+    noNamesSheet: 'No names yet. Add each person and their PIN on the People tab of the Google Sheet.',
+    chooseName: 'Choose your name.',
+    enterPin: 'Enter your 4-digit PIN.',
+    chooseDate: 'Choose the date.',
+    enterBothTimes: 'Enter both a start time and an end time.',
+    sameTimes: 'The start and end times are the same.',
+    breakTooLong: 'The break recorded for this entry is as long as the shift or longer.',
+    warnFuture: 'This date is in the future.',
+    warnLong: 'This is {hours} hours, which is a very long shift. Check AM and PM.',
+    warnOverlap: '{name} already has hours overlapping this: {day}, {start} to {end}.',
+    saveAnyway: 'Save anyway',
+    saveAnywayQuestion: 'Save anyway?',
+    errPin: "That PIN isn't right for {name}. Try again.",
+    errLocked: 'Too many wrong PINs for {name}. Wait 10 minutes and try again.',
+    errNoPerson: "{name} isn't on the People tab of the Google Sheet, so this has to be changed in the Sheet.",
+    errNetworkSave: "Couldn't reach the Google Sheet, so this was not saved. Check the Wi-Fi and try again.",
+    errNetworkLoad: "Couldn't reach the Google Sheet. Check the Wi-Fi.",
+    errNetworkDelete: "Couldn't reach the Google Sheet, so the entry was not deleted. Check the Wi-Fi and try again.",
+    errSetup: 'The Google Sheet is missing its Hours or People tab. Run setup in the Sheet again.',
+    errInvalid: 'The Google Sheet would not accept this entry. Check the date and times.',
+    errServer: 'The Google Sheet had a problem, so this was not saved. Try again in a moment.',
+    maybeOutOfDate: 'The hours shown may be out of date.',
+    thisPerson: 'this person',
+    previous: '‹ Previous',
+    thisWeek: 'This week',
+    next: 'Next ›',
+    totals: 'Totals',
+    exportWeek: 'Save this week as a spreadsheet',
+    allEntries: 'All entries this week',
+    name: 'Name',
+    totalHours: 'Total hours',
+    everyone: 'Everyone',
+    noNames: 'No names have been added yet.',
+    noHours: 'No hours logged this week.',
+    badRows: "Row {rows} on the Hours tab of the Google Sheet can't be read and is not counted in these totals. Check its name, date, and times.",
+    timeRange: '{start} to {end}',
+    nextDay: ' (next day)',
+    minBreak: ', {minutes} min break',
+    hrs: 'hrs',
+    edit: 'Edit',
+    delete: 'Delete',
+    deleteQuestion: "Delete this entry?\n\n{summary}\n\nEnter {name}'s PIN to confirm.",
+    deleted: 'Entry deleted',
+    deleteNeedsPin: 'That entry was not deleted. A 4-digit PIN is needed.',
+    namesAndPins: 'Names and PINs',
+    namesAndPinsHelp: "Names and PINs are kept on the People tab of the Google Sheet, so people at the iPad can't change them. Add, remove, or change them there.",
+    onTheList: 'On the list now: {names}.',
+    payWeek: 'Pay week',
+    weekStartsOn: 'The week starts on',
+    connectionTitle: 'Google Sheet connection',
+    connectionHelp: 'Hours are saved in your Google Sheet. At the end of each season, download a copy there using File, then Download.',
+    disconnect: 'Disconnect this device',
+    disconnectQuestion: "Disconnect this device from the Google Sheet?\n\nNo hours are deleted. You'll need the access code to connect again."
+  },
+  es: {
+    locale: 'es-US',
+    switchTo: 'English',
+    appName: 'Registro de horas',
+    navLog: 'Registrar horas',
+    navWeek: 'Horas de la semana',
+    navSettings: 'Ajustes',
+    tryAgain: 'Intentar de nuevo',
+    connectTitle: 'Conectar con la hoja de Google',
+    connectMissing: 'Esta copia de la aplicación todavía no sabe qué hoja de Google usar. Primero termina los pasos de configuración del archivo README.',
+    connectIntro: 'Escribe el código de acceso que aparece en la pestaña Setup de la hoja de Google. Solo hay que hacerlo una vez en cada dispositivo.',
+    accessCode: 'Código de acceso',
+    connect: 'Conectar',
+    enterCode: 'Escribe el código de acceso.',
+    wrongCode: 'Ese código de acceso no coincide. Revisa la pestaña Setup de la hoja de Google.',
+    checkAgain: 'Revisar de nuevo',
+    logTitle: 'Registra tus horas',
+    editTitle: 'Cambiar este registro',
+    yourName: 'Tu nombre',
+    yourPin: 'Tu PIN',
+    date: 'Fecha',
+    startTime: 'Hora de entrada',
+    endTime: 'Hora de salida',
+    paidNote: 'Los descansos y el almuerzo son pagados, así que no los restes. Solo escribe a qué hora empezaste y terminaste.',
+    saveHours: 'Guardar horas',
+    saveChanges: 'Guardar cambios',
+    saving: 'Guardando…',
+    cancel: 'Cancelar',
+    enterTimes: 'Escribe la hora de entrada y de salida',
+    checkTimes: 'Revisa las horas',
+    endsNextDay: 'La hora de salida es del día siguiente',
+    hoursCount: '{hours} horas',
+    saved: 'Se guardaron {hours} horas de {name}',
+    loadingNames: 'Cargando los nombres de la hoja de Google…',
+    loadingSheet: 'Cargando de la hoja de Google…',
+    noNamesSheet: 'Todavía no hay nombres. Agrega a cada persona y su PIN en la pestaña People de la hoja de Google.',
+    chooseName: 'Elige tu nombre.',
+    enterPin: 'Escribe tu PIN de 4 dígitos.',
+    chooseDate: 'Elige la fecha.',
+    enterBothTimes: 'Escribe la hora de entrada y la de salida.',
+    sameTimes: 'La hora de entrada y la de salida son iguales.',
+    breakTooLong: 'El descanso anotado en este registro dura lo mismo que el turno o más.',
+    warnFuture: 'Esta fecha todavía no ha llegado.',
+    warnLong: 'Son {hours} horas, un turno muy largo. Revisa si es AM o PM.',
+    warnOverlap: '{name} ya tiene horas que coinciden con estas: {day}, de {start} a {end}.',
+    saveAnyway: 'Guardar de todos modos',
+    saveAnywayQuestion: '¿Guardar de todos modos?',
+    errPin: 'Ese PIN no es correcto para {name}. Inténtalo de nuevo.',
+    errLocked: 'Demasiados PIN incorrectos para {name}. Espera 10 minutos e inténtalo de nuevo.',
+    errNoPerson: '{name} no está en la pestaña People de la hoja de Google, así que esto se tiene que cambiar en la hoja.',
+    errNetworkSave: 'No se pudo conectar con la hoja de Google y esto no se guardó. Revisa el Wi-Fi e inténtalo de nuevo.',
+    errNetworkLoad: 'No se pudo conectar con la hoja de Google. Revisa el Wi-Fi.',
+    errNetworkDelete: 'No se pudo conectar con la hoja de Google y el registro no se borró. Revisa el Wi-Fi e inténtalo de nuevo.',
+    errSetup: 'A la hoja de Google le falta la pestaña Hours o People. Vuelve a ejecutar la configuración en la hoja.',
+    errInvalid: 'La hoja de Google no aceptó este registro. Revisa la fecha y las horas.',
+    errServer: 'La hoja de Google tuvo un problema y esto no se guardó. Inténtalo de nuevo en un momento.',
+    maybeOutOfDate: 'Es posible que las horas que se muestran no estén al día.',
+    thisPerson: 'esta persona',
+    previous: '‹ Anterior',
+    thisWeek: 'Esta semana',
+    next: 'Siguiente ›',
+    totals: 'Totales',
+    exportWeek: 'Guardar esta semana como hoja de cálculo',
+    allEntries: 'Todos los registros de esta semana',
+    name: 'Nombre',
+    totalHours: 'Total de horas',
+    everyone: 'Todos',
+    noNames: 'Todavía no se han agregado nombres.',
+    noHours: 'No hay horas registradas esta semana.',
+    badRows: 'No se puede leer la fila {rows} de la pestaña Hours de la hoja de Google, y no se cuenta en estos totales. Revisa el nombre, la fecha y las horas.',
+    timeRange: 'de {start} a {end}',
+    nextDay: ' (día siguiente)',
+    minBreak: ', descanso de {minutes} min',
+    hrs: 'horas',
+    edit: 'Editar',
+    delete: 'Borrar',
+    deleteQuestion: '¿Borrar este registro?\n\n{summary}\n\nEscribe el PIN de {name} para confirmar.',
+    deleted: 'Registro borrado',
+    deleteNeedsPin: 'El registro no se borró. Se necesita un PIN de 4 dígitos.',
+    namesAndPins: 'Nombres y PIN',
+    namesAndPinsHelp: 'Los nombres y los PIN se guardan en la pestaña People de la hoja de Google, para que nadie los pueda cambiar desde el iPad. Agrégalos, quítalos o cámbialos allí.',
+    onTheList: 'En la lista ahora: {names}.',
+    payWeek: 'Semana de pago',
+    weekStartsOn: 'La semana empieza el',
+    connectionTitle: 'Conexión con la hoja de Google',
+    connectionHelp: 'Las horas se guardan en tu hoja de Google. Al final de cada temporada, descarga una copia allí con Archivo y luego Descargar.',
+    disconnect: 'Desconectar este dispositivo',
+    disconnectQuestion: '¿Desconectar este dispositivo de la hoja de Google?\n\nNo se borra ninguna hora. Vas a necesitar el código de acceso para conectarlo de nuevo.'
+  }
+};
+
+let lang = 'en';
+let state = { people: [], entries: [], badRows: [], loaded: false, loadedAt: 0 };
+let weekStart = 0;
+let accessCode = '';
+let editingId = null;
+// Always 0 for new entries. A manager can still record a break on the Hours tab, and editing that entry keeps it.
+let editingBreak = 0;
+let pendingSave = null;
+let saving = false;
+let loading = false;
+let viewWeek = null;
+let lastSeenDay = null;
+let toastTimer = null;
+
+const $ = id => document.getElementById(id);
+
+// ---- Language ----
+function t(key, values) {
+  let text = TEXT[lang][key];
+  Object.keys(values || {}).forEach(name => { text = text.split('{' + name + '}').join(values[name]); });
+  return text;
+}
+function applyLanguage() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-t]').forEach(el => { el.textContent = t(el.dataset.t); });
+  $('lang-btn').textContent = TEXT[lang].switchTo;
+  $('lang-btn').lang = lang === 'en' ? 'es' : 'en';
+  $('log-title').textContent = t(editingId ? 'editTitle' : 'logTitle');
+  $('save-btn').textContent = t(saving ? 'saving' : (editingId ? 'saveChanges' : 'saveHours'));
+  ['form-error', 'week-error', 'connect-error'].forEach(id => showError(id, ''));
+  renderNameChoices();
+  updatePreview();
+  if (!$('page-week').hidden) renderWeek();
+  if (!$('page-settings').hidden) renderSettings();
+  if (!$('status-banner').hidden) refresh();
+}
+
+// ---- Small helpers ----
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+function pad(n) {
+  return String(n).padStart(2, '0');
+}
+// Dates are plain YYYY-MM-DD in local time, so an evening entry never slips to the next day.
+function toDateStr(d) {
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function parseDate(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+function addDays(d, days) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + days);
+}
+function weekStartOf(d) {
+  return addDays(d, -((d.getDay() - weekStart + 7) % 7));
+}
+function toMinutes(time) {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+}
+// An end time earlier than the start time means the shift ran past midnight.
+function shiftMinutes(start, end) {
+  const span = toMinutes(end) - toMinutes(start);
+  return span < 0 ? span + 1440 : span;
+}
+function workedMinutes(entry) {
+  return shiftMinutes(entry.start, entry.end) - entry.breakMin;
+}
+// Totals add up minutes and convert at the end, so rounded rows can't drift the total.
+function fmtHours(minutes) {
+  return (minutes / 60).toFixed(2);
+}
+function fmtTime(time) {
+  const [h, m] = time.split(':').map(Number);
+  return (h % 12 || 12) + ':' + pad(m) + (h < 12 ? ' AM' : ' PM');
+}
+function fmtDay(d) {
+  return d.toLocaleDateString(t('locale'), { weekday: 'long', month: 'long', day: 'numeric' });
+}
+function fmtRange(start, locale) {
+  const end = addDays(start, 6);
+  const short = d => d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+  return short(start) + ' – ' + short(end) + ', ' + end.getFullYear();
+}
+function byDateThenTime(a, b) {
+  return a.date.localeCompare(b.date) || a.start.localeCompare(b.start) || a.name.localeCompare(b.name);
+}
+function toast(message) {
+  const el = $('toast');
+  el.textContent = message;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 4000);
+}
+function showError(id, message) {
+  $(id).textContent = message || '';
+  $(id).hidden = !message;
+}
+function readStored(key) {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+}
+function writeStored(key, value) {
+  try {
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch (e) {}
+}
+
+// Stands in for confirm() and prompt(), which aren't dependable in an app opened from the iPad home screen.
+// With wantsPin it resolves to the typed PIN, or null if cancelled. Otherwise it resolves to true or false.
+function ask(message, okLabel, wantsPin) {
+  return new Promise(resolve => {
+    const dialog = $('dialog');
+    const input = $('dialog-pin');
+    $('dialog-message').textContent = message;
+    $('dialog-ok').textContent = okLabel;
+    input.hidden = !wantsPin;
+    input.value = '';
+    dialog.returnValue = 'cancel';
+    dialog.addEventListener('close', () => {
+      const ok = dialog.returnValue === 'ok';
+      const pin = input.value;
+      input.value = '';
+      resolve(wantsPin ? (ok ? pin : null) : ok);
+    }, { once: true });
+    dialog.showModal();
+    if (wantsPin) input.focus();
+  });
+}
+
+// ---- Talking to the Google Sheet ----
+function ApiError(code) {
+  this.code = code;
+}
+async function api(action, payload) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    // Sent as plain text on purpose: Google's script addresses reject the extra check browsers make for JSON.
+    const response = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(Object.assign({ code: accessCode, action }, payload)),
+      signal: controller.signal
+    });
+    const data = await response.json();
+    if (!data.ok) throw new ApiError(data.error);
+    return data;
+  } catch (e) {
+    throw e instanceof ApiError ? e : new ApiError('network');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function errorMessage(err, name) {
+  const values = { name: name || t('thisPerson') };
+  switch (err.code) {
+    case 'pin': return t('errPin', values);
+    case 'locked': return t('errLocked', values);
+    case 'no-person': return t('errNoPerson', values);
+    case 'network': return t('errNetworkSave');
+    case 'setup': return t('errSetup');
+    case 'invalid': return t('errInvalid');
+    default: return t('errServer');
+  }
+}
+function applyData(data) {
+  state.people = data.people;
+  state.entries = data.entries;
+  state.badRows = data.badRows || [];
+  state.loaded = true;
+  state.loadedAt = Date.now();
+  renderNameChoices();
+  if (!$('page-week').hidden) renderWeek();
+  if (!$('page-settings').hidden) renderSettings();
+}
+async function refresh() {
+  if (loading || saving) return;
+  loading = true;
+  try {
+    applyData(await api('load'));
+    $('status-banner').hidden = true;
+  } catch (err) {
+    if (err.code === 'access') {
+      connectAgain();
+    } else {
+      const shown = state.loaded ? ' ' + t('maybeOutOfDate') : '';
+      $('status-text').textContent = (err.code === 'network' ? t('errNetworkLoad') : errorMessage(err)) + shown;
+      $('status-banner').hidden = false;
+      renderNameChoices();
+    }
+  } finally {
+    loading = false;
+  }
+}
+function connectAgain() {
+  accessCode = '';
+  writeStored(CODE_KEY, null);
+  state = { people: [], entries: [], badRows: [], loaded: false, loadedAt: 0 };
+  resetForm();
+  $('status-banner').hidden = true;
+  showPage('connect');
+}
+async function connect(event) {
+  event.preventDefault();
+  const code = $('connect-code').value.trim();
+  if (!code) {
+    showError('connect-error', t('enterCode'));
+    return;
+  }
+  accessCode = code;
+  $('connect-btn').disabled = true;
+  showError('connect-error', '');
+  try {
+    applyData(await api('load'));
+    writeStored(CODE_KEY, code);
+    $('connect-code').value = '';
+    showPage('log');
+  } catch (err) {
+    accessCode = '';
+    showError('connect-error', err.code === 'access' ? t('wrongCode') : t('errNetworkLoad'));
+  } finally {
+    $('connect-btn').disabled = false;
+  }
+}
+
+// ---- Pages ----
+function showPage(page) {
+  ['connect', 'log', 'week', 'settings'].forEach(name => { $('page-' + name).hidden = name !== page; });
+  $('main-nav').hidden = page === 'connect';
+  document.querySelectorAll('nav button').forEach(btn => {
+    if (btn.dataset.page === page) btn.setAttribute('aria-current', 'page');
+    else btn.removeAttribute('aria-current');
+  });
+  if (page === 'log') renderNameChoices();
+  if (page === 'week') renderWeek();
+  if (page === 'settings') renderSettings();
+  window.scrollTo(0, 0);
+  if (page !== 'connect' && Date.now() - state.loadedAt > REFRESH_AFTER_MS) refresh();
+}
+
+// ---- Log hours ----
+function selectedName() {
+  const checked = document.querySelector('input[name="person"]:checked');
+  return checked ? checked.value : '';
+}
+function renderNameChoices() {
+  const selected = selectedName();
+  const editing = editingId ? state.entries.find(e => e.id === editingId) : null;
+  // While an entry is open, it can only stay with the person it belongs to.
+  const names = editing ? [editing.name] : state.people;
+  $('names-message').hidden = names.length > 0;
+  $('form-fields').hidden = names.length === 0;
+  if (!names.length) {
+    $('names-message-text').textContent = t(state.loaded ? 'noNamesSheet' : 'loadingNames');
+    $('names-check').hidden = !state.loaded;
+  }
+  $('name-choices').innerHTML = names.map(name =>
+    `<label><input type="radio" name="person" value="${esc(name)}"${name === selected || editing ? ' checked' : ''}><span>${esc(name)}</span></label>`
+  ).join('');
+}
+function updatePreview() {
+  const start = $('f-start').value;
+  const end = $('f-end').value;
+  const hours = $('preview-hours');
+  const note = $('preview-note');
+  if (!start || !end) {
+    hours.textContent = '–';
+    note.textContent = t('enterTimes');
+    return;
+  }
+  const worked = shiftMinutes(start, end) - editingBreak;
+  hours.textContent = worked > 0 ? t('hoursCount', { hours: fmtHours(worked) }) : '–';
+  note.textContent = worked <= 0
+    ? t('checkTimes')
+    : (toMinutes(end) < toMinutes(start) ? t('endsNextDay') : '');
+}
+function resetForm() {
+  editingId = null;
+  editingBreak = 0;
+  pendingSave = null;
+  $('entry-form').reset();
+  // Rebuilt from empty, because reset() alone would put back a name that was drawn as selected.
+  $('name-choices').innerHTML = '';
+  $('f-date').value = toDateStr(new Date());
+  $('log-title').textContent = t('logTitle');
+  $('save-btn').textContent = t('saveHours');
+  $('cancel-edit').hidden = true;
+  showError('form-error', '');
+  renderNameChoices();
+  updatePreview();
+}
+function validateEntry(entry, pin) {
+  if (!entry.name) return t('chooseName');
+  if (!/^\d{4}$/.test(pin)) return t('enterPin');
+  if (!entry.date) return t('chooseDate');
+  if (!entry.start || !entry.end) return t('enterBothTimes');
+  if (entry.start === entry.end) return t('sameTimes');
+  if (workedMinutes(entry) <= 0) return t('breakTooLong');
+  return '';
+}
+// Each shift as a span of absolute minutes, so a shift past midnight still compares correctly.
+function shiftSpan(entry) {
+  const d = parseDate(entry.date);
+  const day = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 60000;
+  const from = day + toMinutes(entry.start);
+  return [from, from + shiftMinutes(entry.start, entry.end)];
+}
+function entryWarnings(entry) {
+  const warnings = [];
+  if (entry.date > toDateStr(new Date())) warnings.push(t('warnFuture'));
+  if (workedMinutes(entry) > LONG_SHIFT_MINUTES) warnings.push(t('warnLong', { hours: fmtHours(workedMinutes(entry)) }));
+  const [from, to] = shiftSpan(entry);
+  const overlap = state.entries.find(other => {
+    if (other.id === entry.id || other.name !== entry.name) return false;
+    const [otherFrom, otherTo] = shiftSpan(other);
+    return from < otherTo && otherFrom < to;
+  });
+  if (overlap) warnings.push(t('warnOverlap', { name: entry.name, day: fmtDay(parseDate(overlap.date)), start: fmtTime(overlap.start), end: fmtTime(overlap.end) }));
+  return warnings;
+}
+// A dropped connection can hide a save that actually worked. Retrying with the same ID
+// updates that row in the Sheet instead of adding a second copy.
+function idForSave(name) {
+  if (editingId) return editingId;
+  if (!pendingSave || pendingSave.name !== name) pendingSave = { id: uid(), name };
+  return pendingSave.id;
+}
+function setSaving(isSaving) {
+  saving = isSaving;
+  $('save-btn').disabled = isSaving;
+  $('cancel-edit').disabled = isSaving;
+  $('save-btn').textContent = t(isSaving ? 'saving' : (editingId ? 'saveChanges' : 'saveHours'));
+}
+async function submitEntry(event) {
+  event.preventDefault();
+  if (saving) return;
+  const name = selectedName();
+  const pin = $('f-pin').value.trim();
+  const entry = {
+    id: idForSave(name),
+    name,
+    date: $('f-date').value,
+    start: $('f-start').value,
+    end: $('f-end').value,
+    breakMin: editingBreak
+  };
+  const problem = validateEntry(entry, pin);
+  showError('form-error', problem);
+  if (problem) return;
+  const warnings = entryWarnings(entry);
+  if (warnings.length && !await ask(warnings.join('\n\n') + '\n\n' + t('saveAnywayQuestion'), t('saveAnyway'))) return;
+
+  const wasEditing = Boolean(editingId);
+  setSaving(true);
+  try {
+    const data = await api('save', { entry, pin });
+    applyData(data);
+    $('status-banner').hidden = true;
+    setSaving(false);
+    toast(t('saved', { hours: fmtHours(workedMinutes(entry)), name }));
+    // The name and PIN clear on purpose, so the next person on the shared iPad can't log under the last one.
+    resetForm();
+    if (wasEditing) {
+      viewWeek = weekStartOf(parseDate(entry.date));
+      showPage('week');
+    }
+  } catch (err) {
+    setSaving(false);
+    if (err.code === 'access') {
+      connectAgain();
+      return;
+    }
+    if (err.code === 'pin' || err.code === 'locked') $('f-pin').value = '';
+    showError('form-error', errorMessage(err, name));
+  }
+}
+function startEdit(id) {
+  const entry = state.entries.find(e => e.id === id);
+  if (!entry) return;
+  editingId = id;
+  editingBreak = entry.breakMin;
+  showPage('log');
+  $('f-pin').value = '';
+  $('f-date').value = entry.date;
+  $('f-start').value = entry.start;
+  $('f-end').value = entry.end;
+  $('log-title').textContent = t('editTitle');
+  $('save-btn').textContent = t('saveChanges');
+  $('cancel-edit').hidden = false;
+  showError('form-error', '');
+  updatePreview();
+}
+async function deleteEntry(id) {
+  const entry = state.entries.find(e => e.id === id);
+  if (!entry) return;
+  const summary = `${entry.name}, ${fmtDay(parseDate(entry.date))}, ${t('timeRange', { start: fmtTime(entry.start), end: fmtTime(entry.end) })}`;
+  const pin = await ask(t('deleteQuestion', { summary, name: entry.name }), t('delete'), true);
+  if (pin === null) return;
+  showError('week-error', '');
+  if (!/^\d{4}$/.test(pin.trim())) {
+    showError('week-error', t('deleteNeedsPin'));
+    return;
+  }
+  try {
+    applyData(await api('delete', { id, pin: pin.trim() }));
+    toast(t('deleted'));
+  } catch (err) {
+    if (err.code === 'access') {
+      connectAgain();
+      return;
+    }
+    showError('week-error', err.code === 'network' ? t('errNetworkDelete') : errorMessage(err, entry.name));
+  }
+}
+
+// ---- Weekly hours ----
+function entriesInWeek(start) {
+  const from = toDateStr(start);
+  const to = toDateStr(addDays(start, 6));
+  return state.entries.filter(e => e.date >= from && e.date <= to).sort(byDateThenTime);
+}
+// One row per person: everyone on the People tab (so a missing time card stands out), plus anyone removed since who has hours this week.
+function weekRows(start, entries) {
+  const days = [0, 1, 2, 3, 4, 5, 6].map(i => toDateStr(addDays(start, i)));
+  const names = Array.from(new Set(state.people.concat(entries.map(e => e.name))));
+  return names.map(name => {
+    const own = entries.filter(e => e.name === name);
+    const perDay = days.map(day => own.filter(e => e.date === day).reduce((sum, e) => sum + workedMinutes(e), 0));
+    return { name, perDay, total: perDay.reduce((a, b) => a + b, 0) };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+}
+function renderWeek() {
+  const entries = entriesInWeek(viewWeek);
+  const rows = weekRows(viewWeek, entries);
+  $('week-title').textContent = fmtRange(viewWeek, t('locale'));
+  $('week-now').disabled = toDateStr(viewWeek) === toDateStr(weekStartOf(new Date()));
+  $('export-week').disabled = entries.length === 0;
+  // A row the app can't read would make someone's pay total wrong without this warning.
+  showError('week-bad-rows', state.badRows.length ? t('badRows', { rows: state.badRows.join(', ') }) : '');
+
+  if (rows.length === 0) {
+    $('week-totals').innerHTML = `<p class="muted">${esc(t(state.loaded ? 'noNames' : 'loadingSheet'))}</p>`;
+  } else {
+    const heads = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const d = addDays(viewWeek, i);
+      return `<th scope="col">${esc(d.toLocaleDateString(t('locale'), { weekday: 'short' }))}<br>${d.getMonth() + 1}/${d.getDate()}</th>`;
+    }).join('');
+    const cell = minutes => minutes ? `<td>${fmtHours(minutes)}</td>` : '<td class="zero">–</td>';
+    const body = rows.map(row =>
+      `<tr><td>${esc(row.name)}</td>${row.perDay.map(cell).join('')}<td class="total-col">${fmtHours(row.total)}</td></tr>`
+    ).join('');
+    const dayTotals = [0, 1, 2, 3, 4, 5, 6].map(i => rows.reduce((sum, row) => sum + row.perDay[i], 0));
+    const grand = rows.reduce((sum, row) => sum + row.total, 0);
+    $('week-totals').innerHTML = `<table>
+      <thead><tr><th scope="col">${esc(t('name'))}</th>${heads}<th scope="col" class="total-col">${esc(t('totalHours'))}</th></tr></thead>
+      <tbody>${body}</tbody>
+      <tfoot><tr><td>${esc(t('everyone'))}</td>${dayTotals.map(cell).join('')}<td class="total-col">${fmtHours(grand)}</td></tr></tfoot>
+    </table>`;
+  }
+
+  if (entries.length === 0) {
+    $('week-entries').innerHTML = `<p class="muted">${esc(t(state.loaded ? 'noHours' : 'loadingSheet'))}</p>`;
+    return;
+  }
+  let html = '';
+  let currentDay = '';
+  entries.forEach(entry => {
+    if (entry.date !== currentDay) {
+      currentDay = entry.date;
+      html += `<h3 class="day-title">${esc(fmtDay(parseDate(entry.date)))}</h3>`;
+    }
+    const breakNote = entry.breakMin ? t('minBreak', { minutes: entry.breakMin }) : '';
+    const nextDay = toMinutes(entry.end) < toMinutes(entry.start) ? t('nextDay') : '';
+    html += `<div class="entry">
+      <div class="entry-main">
+        <div class="entry-name">${esc(entry.name)}</div>
+        <div class="muted">${esc(t('timeRange', { start: fmtTime(entry.start), end: fmtTime(entry.end) }))}${esc(nextDay)}${esc(breakNote)}</div>
+      </div>
+      <div class="entry-hours">${fmtHours(workedMinutes(entry))} ${esc(t('hrs'))}</div>
+      <div class="entry-actions">
+        <button type="button" class="btn small" data-edit="${esc(entry.id)}">${esc(t('edit'))}</button>
+        <button type="button" class="btn small danger" data-delete="${esc(entry.id)}">${esc(t('delete'))}</button>
+      </div>
+    </div>`;
+  });
+  $('week-entries').innerHTML = html;
+}
+
+// ---- Spreadsheet file ----
+function csvCell(value) {
+  let text = String(value);
+  // A leading = + - or @ would make Excel treat a typed name as a formula.
+  if (/^[=+\-@\t\r]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+function weekCsv(start) {
+  const entries = entriesInWeek(start);
+  const rows = weekRows(start, entries);
+  const lines = [
+    ['Fantasy Lighting time card'],
+    ['Week', fmtRange(start, 'en-US')],
+    [],
+    ['Name', 'Total hours'],
+    ...rows.map(row => [row.name, fmtHours(row.total)]),
+    ['Everyone', fmtHours(rows.reduce((sum, row) => sum + row.total, 0))],
+    [],
+    ['Name', 'Date', 'Day', 'Start', 'End', 'Break (minutes)', 'Hours'],
+    ...entries.map(e => [e.name, e.date, DAY_NAMES[parseDate(e.date).getDay()], fmtTime(e.start), fmtTime(e.end), e.breakMin, fmtHours(workedMinutes(e))])
+  ];
+  // The leading marker tells Excel the file is UTF-8, so accented names display correctly.
+  return '﻿' + lines.map(line => line.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+function isAppleTablet() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+async function saveFile(filename, text, type) {
+  const file = new File([text], filename, { type });
+  // Downloads are unreliable in a home-screen app, so the iPad uses its share sheet (Save to Files, AirDrop, Mail).
+  if (isAppleTablet() && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file] });
+      return;
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+// ---- Settings ----
+function renderSettings() {
+  $('people-summary').textContent = state.people.length
+    ? t('onTheList', { names: state.people.join(', ') })
+    : t(state.loaded ? 'noNames' : 'loadingSheet');
+  // November 1, 2026 is a Sunday, so counting from it gives the day names in order.
+  $('week-start').innerHTML = DAY_NAMES.map((name, i) => {
+    const label = new Date(2026, 10, 1 + i).toLocaleDateString(t('locale'), { weekday: 'long' });
+    return `<option value="${i}"${i === weekStart ? ' selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+}
+
+// ---- Wiring ----
+document.addEventListener('click', event => {
+  const target = event.target.closest('button');
+  if (!target) return;
+  if (target.dataset.page) showPage(target.dataset.page);
+  else if (target.dataset.edit) startEdit(target.dataset.edit);
+  else if (target.dataset.delete) deleteEntry(target.dataset.delete);
+});
+$('lang-btn').addEventListener('click', () => {
+  lang = lang === 'en' ? 'es' : 'en';
+  writeStored(LANG_KEY, lang);
+  applyLanguage();
+});
+$('connect-form').addEventListener('submit', connect);
+$('entry-form').addEventListener('submit', submitEntry);
+$('entry-form').addEventListener('input', updatePreview);
+$('names-check').addEventListener('click', refresh);
+$('status-retry').addEventListener('click', refresh);
+$('cancel-edit').addEventListener('click', () => {
+  const entry = state.entries.find(e => e.id === editingId);
+  resetForm();
+  if (entry) viewWeek = weekStartOf(parseDate(entry.date));
+  showPage('week');
+});
+$('week-prev').addEventListener('click', () => { viewWeek = addDays(viewWeek, -7); renderWeek(); });
+$('week-next').addEventListener('click', () => { viewWeek = addDays(viewWeek, 7); renderWeek(); });
+$('week-now').addEventListener('click', () => { viewWeek = weekStartOf(new Date()); renderWeek(); });
+$('export-week').addEventListener('click', () => {
+  saveFile(`fantasy-lighting-hours-${toDateStr(viewWeek)}.csv`, weekCsv(viewWeek), 'text/csv');
+});
+$('week-start').addEventListener('change', event => {
+  weekStart = Number(event.target.value);
+  writeStored(WEEK_START_KEY, String(weekStart));
+  viewWeek = weekStartOf(new Date());
+});
+$('disconnect-btn').addEventListener('click', async () => {
+  if (await ask(t('disconnectQuestion'), t('disconnect'))) connectAgain();
+});
+// The iPad may stay open for days, so returning brings in fresh hours, and on a new day moves an untouched form and the week view to today.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden || !accessCode) return;
+  const today = toDateStr(new Date());
+  if (today !== lastSeenDay) {
+    lastSeenDay = today;
+    viewWeek = weekStartOf(new Date());
+    if (!editingId && !selectedName() && !$('f-start').value && !$('f-end').value) $('f-date').value = today;
+    if (!$('page-week').hidden) renderWeek();
+  }
+  if (Date.now() - state.loadedAt > REFRESH_AFTER_MS) refresh();
+});
+
+if (readStored(LANG_KEY) === 'es') lang = 'es';
+const savedWeekStart = Number(readStored(WEEK_START_KEY));
+if (Number.isInteger(savedWeekStart) && savedWeekStart >= 0 && savedWeekStart <= 6) weekStart = savedWeekStart;
+accessCode = readStored(CODE_KEY) || '';
+lastSeenDay = toDateStr(new Date());
+viewWeek = weekStartOf(new Date());
+resetForm();
+applyLanguage();
+if (!SCRIPT_URL) {
+  $('connect-missing').hidden = false;
+  $('connect-form').hidden = true;
+  showPage('connect');
+} else if (!accessCode) {
+  showPage('connect');
+} else {
+  showPage('log');
+}
+</script>
+</body>
+</html>

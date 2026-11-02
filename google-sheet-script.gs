@@ -9,6 +9,8 @@
 const HOURS_TAB = 'Hours';
 const PEOPLE_TAB = 'People';
 const SETUP_TAB = 'Setup';
+const PAYROLL_TAB = 'Payroll';
+const PAYROLL_FIRST_ROW = 6;
 const HOURS_HEADERS = ['Name', 'Date', 'Start', 'End', 'Break (minutes)', 'Hours', 'Logged at', 'Entry ID'];
 const COL = { name: 1, date: 2, start: 3, end: 4, breakMin: 5, hours: 6, loggedAt: 7, id: 8 };
 // Written as a formula so the Hours column stays right if someone edits a row in the Sheet.
@@ -101,16 +103,9 @@ function loadAll() {
     // Display values are the text as shown in the cell, so Google never hands back date objects.
     const rows = sheet.getRange(2, 1, lastRow - 1, HOURS_HEADERS.length).getDisplayValues();
     rows.forEach((row, i) => {
-      if (row.slice(0, 5).every(cell => String(cell).trim() === '')) return;
+      if (isBlankRow(row)) return;
       const rowNumber = i + 2;
-      const entry = {
-        id: String(row[COL.id - 1]).trim(),
-        name: String(row[COL.name - 1]).trim(),
-        date: normalizeDate(row[COL.date - 1]),
-        start: normalizeTime(row[COL.start - 1]),
-        end: normalizeTime(row[COL.end - 1]),
-        breakMin: String(row[COL.breakMin - 1]).trim() === '' ? 0 : Number(row[COL.breakMin - 1])
-      };
+      const entry = rowToEntry(row);
       if (!isValidEntry(entry)) {
         badRows.push(rowNumber);
         return;
@@ -126,6 +121,22 @@ function loadAll() {
   return { ok: true, people, entries, badRows };
 }
 
+function isBlankRow(row) {
+  return row.slice(0, 5).every(cell => String(cell).trim() === '');
+}
+
+function rowToEntry(row) {
+  return {
+    id: String(row[COL.id - 1]).trim(),
+    name: String(row[COL.name - 1]).trim(),
+    date: normalizeDate(row[COL.date - 1]),
+    start: normalizeTime(row[COL.start - 1]),
+    end: normalizeTime(row[COL.end - 1]),
+    breakMin: String(row[COL.breakMin - 1]).trim() === '' ? 0 : Number(row[COL.breakMin - 1])
+  };
+}
+
+// Reads only the name and PIN columns, so pay rates are never sent to the iPad.
 function readPeople() {
   const sheet = SpreadsheetApp.getActive().getSheetByName(PEOPLE_TAB);
   if (!sheet) throw apiError('setup');
@@ -147,7 +158,11 @@ function normalizeDate(value) {
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
   const parsed = new Date(text);
   if (!text || isNaN(parsed)) return '';
-  return parsed.getFullYear() + '-' + pad(parsed.getMonth() + 1) + '-' + pad(parsed.getDate());
+  return toIsoDate(parsed);
+}
+
+function toIsoDate(d) {
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 }
 
 // Accepts how a person might type a time in the Sheet: 8:00 AM, 8:00, 17:30, 17:30:00.
@@ -250,4 +265,108 @@ function deleteEntry(id, pin) {
   if (!row) return;
   checkPin(sheet.getRange(row, COL.name).getDisplayValue(), pin);
   sheet.deleteRow(row);
+}
+
+// ---- Payroll: hours times pay rate, before taxes, with no overtime. Only used inside the Sheet. ----
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('Time card').addItem('Update payroll', 'updatePayroll').addToUi();
+}
+
+// Run this once from the script editor. Running it again keeps the rates and the chosen week.
+function setupPayroll() {
+  const book = SpreadsheetApp.getActive();
+  const people = book.getSheetByName(PEOPLE_TAB);
+  if (!people || !book.getSheetByName(HOURS_TAB)) throw new Error('Run setup first.');
+  people.getRange(1, 3).setValue('Pay rate ($ per hour)').setFontWeight('bold');
+
+  let payroll = book.getSheetByName(PAYROLL_TAB);
+  if (!payroll) {
+    payroll = book.insertSheet(PAYROLL_TAB);
+    const today = new Date();
+    const lastSunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
+    payroll.getRange(1, 2).setNumberFormat('@').setValue(toIsoDate(lastSunday));
+    payroll.getRange(1, 1, 4, 1).setValues([['Week starting'], ['Week ending'], ['Last updated'], ['Problems']]).setFontWeight('bold');
+    payroll.getRange(PAYROLL_FIRST_ROW - 1, 1, 1, 4)
+      .setValues([['Name', 'Hours', 'Pay rate', 'Pay before taxes']]).setFontWeight('bold');
+  }
+  updatePayroll();
+}
+
+function parseRate(value) {
+  const rate = Number(String(value).replace(/[$,\s]/g, ''));
+  return String(value).trim() !== '' && isFinite(rate) && rate > 0 ? rate : null;
+}
+
+function updatePayroll() {
+  const book = SpreadsheetApp.getActive();
+  const payroll = book.getSheetByName(PAYROLL_TAB);
+  const people = book.getSheetByName(PEOPLE_TAB);
+  const hours = book.getSheetByName(HOURS_TAB);
+  if (!payroll || !people || !hours) throw new Error('Run setupPayroll first.');
+
+  const lastOld = payroll.getLastRow();
+  if (lastOld >= PAYROLL_FIRST_ROW) payroll.getRange(PAYROLL_FIRST_ROW, 1, lastOld - PAYROLL_FIRST_ROW + 1, 4).clearContent();
+  payroll.getRange(3, 2).setValue(new Date());
+
+  const weekStart = normalizeDate(payroll.getRange(1, 2).getDisplayValue());
+  if (!weekStart) {
+    payroll.getRange(2, 2).setValue('');
+    payroll.getRange(4, 2).setValue('Week starting (cell B1) needs a date, like 11/8/2026. Nothing was calculated.');
+    return;
+  }
+  const parts = weekStart.split('-').map(Number);
+  const weekEnd = toIsoDate(new Date(parts[0], parts[1] - 1, parts[2] + 6));
+  payroll.getRange(2, 2).setNumberFormat('@').setValue(weekEnd);
+
+  // One line per person, grouped ignoring capitals so a retyped name still adds up to the same person.
+  const lines = {};
+  const lineFor = name => {
+    const key = name.toLowerCase();
+    if (!lines[key]) lines[key] = { name, minutes: 0, rate: null };
+    return lines[key];
+  };
+  const lastPerson = people.getLastRow();
+  if (lastPerson >= 2) {
+    people.getRange(2, 1, lastPerson - 1, 3).getDisplayValues().forEach(row => {
+      const name = String(row[0]).trim();
+      if (name) lineFor(name).rate = parseRate(row[2]);
+    });
+  }
+
+  const problems = [];
+  const badRows = [];
+  const lastHour = hours.getLastRow();
+  if (lastHour >= 2) {
+    hours.getRange(2, 1, lastHour - 1, HOURS_HEADERS.length).getDisplayValues().forEach((row, i) => {
+      if (isBlankRow(row)) return;
+      const entry = rowToEntry(row);
+      if (!isValidEntry(entry)) {
+        badRows.push(i + 2);
+      } else if (entry.date >= weekStart && entry.date <= weekEnd) {
+        const span = toMinutes(entry.end) - toMinutes(entry.start);
+        lineFor(entry.name).minutes += (span < 0 ? span + 1440 : span) - entry.breakMin;
+      }
+    });
+  }
+  if (badRows.length) problems.push('Hours tab row ' + badRows.join(', ') + " can't be read and is not counted.");
+
+  let totalMinutes = 0;
+  let totalPay = 0;
+  const rows = Object.keys(lines).map(key => lines[key])
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map(line => {
+      const pay = line.rate === null ? null : Math.round(line.minutes / 60 * line.rate * 100) / 100;
+      totalMinutes += line.minutes;
+      if (pay !== null) totalPay += pay;
+      if (pay === null && line.minutes > 0) problems.push(line.name + ' has hours but no pay rate, so their pay is not in the total.');
+      return [line.name, Math.round(line.minutes / 60 * 100) / 100, line.rate === null ? '' : line.rate, pay === null ? (line.minutes > 0 ? 'Needs pay rate' : '') : pay];
+    });
+  rows.push(['Total', Math.round(totalMinutes / 60 * 100) / 100, '', Math.round(totalPay * 100) / 100]);
+
+  const range = payroll.getRange(PAYROLL_FIRST_ROW, 1, rows.length, 4);
+  range.setValues(rows).setFontWeight('normal');
+  payroll.getRange(PAYROLL_FIRST_ROW, 2, rows.length, 1).setNumberFormat('0.00');
+  payroll.getRange(PAYROLL_FIRST_ROW, 3, rows.length, 2).setNumberFormat('$#,##0.00');
+  payroll.getRange(PAYROLL_FIRST_ROW + rows.length - 1, 1, 1, 4).setFontWeight('bold');
+  payroll.getRange(4, 2).setValue(problems.length ? problems.join(' ') : 'None');
 }

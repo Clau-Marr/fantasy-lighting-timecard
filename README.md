@@ -38,6 +38,17 @@ To remove someone, delete their row. Their past hours stay on the Hours tab.
 3. Open the app from that home screen icon.
 4. Enter the access code from the **Setup** tab of the Sheet. This only happens once.
 
+## Payroll
+
+Pay rates stay in the Google Sheet and are never sent to the iPad. Pay here means hours times the hourly rate, before taxes, with no overtime. It doesn't handle tax withholding or deductions.
+
+To turn it on, paste the current `google-sheet-script.gs` into Apps Script, choose `setupPayroll` from the function list, and click **Run**. You don't need to deploy again for this.
+
+1. On the **People** tab, enter each person's hourly rate in column C.
+2. On the **Payroll** tab, type the first day of the week in cell B1, like `11/8/2026`.
+3. Click **Time card**, then **Update payroll**, in the Sheet's top menu. The tab doesn't update on its own, so do this whenever you need current numbers.
+4. Check the **Problems** line. It tells you about missing pay rates and any hours that couldn't be read.
+
 ## Fixing mistakes
 
 - People can edit or delete their own entries from **Weekly hours** using their PIN.

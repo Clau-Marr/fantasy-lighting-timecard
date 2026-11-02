@@ -419,6 +419,7 @@ const TEXT = {
     next: 'Next ›',
     totals: 'Totals',
     exportWeek: 'Save this week as a spreadsheet',
+    exportFailed: "This device couldn't create the file. No hours were lost. They're all in the Google Sheet, and you can download them from there on a computer using File, then Download.\n\nDetails: {problem}",
     allEntries: 'All entries this week',
     name: 'Name',
     totalHours: 'Total hours',
@@ -508,6 +509,7 @@ const TEXT = {
     next: 'Siguiente ›',
     totals: 'Totales',
     exportWeek: 'Guardar esta semana como hoja de cálculo',
+    exportFailed: 'Este dispositivo no pudo crear el archivo. No se perdió ninguna hora. Todas están en la hoja de Google, y puedes descargarlas desde allí en una computadora con Archivo y luego Descargar.\n\nDetalles: {problem}',
     allEntries: 'Todos los registros de esta semana',
     name: 'Nombre',
     totalHours: 'Total de horas',
@@ -1056,16 +1058,25 @@ function weekCsv(start) {
 function isAppleTablet() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
+// Resolves to '' when handled, or to the reason this device couldn't hand over the file.
 async function saveFile(filename, text, type) {
   const file = new File([text], filename, { type });
-  // Downloads are unreliable in a home-screen app, so the iPad uses its share sheet (Save to Files, AirDrop, Mail).
-  if (isAppleTablet() && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file] });
-      return;
-    } catch (e) {
-      if (e.name === 'AbortError') return;
+  // Downloads can silently do nothing in a home-screen app, so the iPad only uses its share sheet (Save to Files, AirDrop, Mail).
+  if (isAppleTablet()) {
+    if (!navigator.share || !navigator.canShare) return 'no share support';
+    let problem = 'file type refused';
+    // Some iPads refuse a spreadsheet file type but accept the same file sent as plain text.
+    for (const candidate of [file, new File([text], filename, { type: 'text/plain' })]) {
+      if (!navigator.canShare({ files: [candidate] })) continue;
+      try {
+        await navigator.share({ files: [candidate] });
+        return '';
+      } catch (e) {
+        if (e.name === 'AbortError') return '';
+        problem = e.name;
+      }
     }
+    return problem;
   }
   const url = URL.createObjectURL(file);
   const link = document.createElement('a');
@@ -1075,6 +1086,7 @@ async function saveFile(filename, text, type) {
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return '';
 }
 
 // ---- Settings ----
@@ -1116,8 +1128,9 @@ $('cancel-edit').addEventListener('click', () => {
 $('week-prev').addEventListener('click', () => { viewWeek = addDays(viewWeek, -7); renderWeek(); });
 $('week-next').addEventListener('click', () => { viewWeek = addDays(viewWeek, 7); renderWeek(); });
 $('week-now').addEventListener('click', () => { viewWeek = weekStartOf(new Date()); renderWeek(); });
-$('export-week').addEventListener('click', () => {
-  saveFile(`fantasy-lighting-hours-${toDateStr(viewWeek)}.csv`, weekCsv(viewWeek), 'text/csv');
+$('export-week').addEventListener('click', async () => {
+  const problem = await saveFile(`fantasy-lighting-hours-${toDateStr(viewWeek)}.csv`, weekCsv(viewWeek), 'text/csv');
+  if (problem) await ask(t('exportFailed', { problem }), 'OK');
 });
 $('week-start').addEventListener('change', event => {
   weekStart = Number(event.target.value);

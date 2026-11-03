@@ -89,7 +89,17 @@ function handleRequest(request) {
   if (request.action === 'save') saveEntry(request.entry || {}, request.pin);
   else if (request.action === 'delete') deleteEntry(request.id, request.pin);
   else if (request.action !== 'load') throw apiError('invalid');
+  if (request.action !== 'load') refreshPayrollSafely();
   return loadAll();
+}
+
+// A payroll problem must never stop someone's hours from saving.
+function refreshPayrollSafely() {
+  try {
+    updatePayroll();
+  } catch (err) {
+    console.error(err);
+  }
 }
 
 // ---- Reading ----
@@ -268,27 +278,31 @@ function deleteEntry(id, pin) {
 }
 
 // ---- Payroll: hours times pay rate, before taxes, with no overtime. Only used inside the Sheet. ----
+// Payroll stays current by itself: when hours are saved or deleted on the iPad, when the Sheet opens,
+// and when someone edits the Hours tab, the People tab, or the week in cell B1.
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('Time card').addItem('Update payroll', 'updatePayroll').addToUi();
+  refreshPayrollSafely();
 }
 
-// Run this once from the script editor. Running it again keeps the rates and the chosen week.
+function onEdit(e) {
+  const tab = e.range.getSheet().getName();
+  const editedWeek = tab === PAYROLL_TAB && e.range.getRow() === 1 && e.range.getColumn() === 2;
+  if (tab === HOURS_TAB || tab === PEOPLE_TAB || editedWeek) refreshPayrollSafely();
+}
+
+// Run this once from the script editor. Running it again keeps the pay rates and goes back to showing this week.
 function setupPayroll() {
   const book = SpreadsheetApp.getActive();
   const people = book.getSheetByName(PEOPLE_TAB);
   if (!people || !book.getSheetByName(HOURS_TAB)) throw new Error('Run setup first.');
   people.getRange(1, 3).setValue('Pay rate ($ per hour)').setFontWeight('bold');
 
-  let payroll = book.getSheetByName(PAYROLL_TAB);
-  if (!payroll) {
-    payroll = book.insertSheet(PAYROLL_TAB);
-    const today = new Date();
-    const lastSunday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay());
-    payroll.getRange(1, 2).setNumberFormat('@').setValue(toIsoDate(lastSunday));
-    payroll.getRange(1, 1, 4, 1).setValues([['Week starting'], ['Week ending'], ['Last updated'], ['Problems']]).setFontWeight('bold');
-    payroll.getRange(PAYROLL_FIRST_ROW - 1, 1, 1, 4)
-      .setValues([['Name', 'Hours', 'Pay rate', 'Pay before taxes']]).setFontWeight('bold');
-  }
+  const payroll = book.getSheetByName(PAYROLL_TAB) || book.insertSheet(PAYROLL_TAB);
+  payroll.getRange(1, 2).setNumberFormat('@').setValue('');
+  payroll.getRange(1, 1, 4, 1).setValues([['Other week (blank = this week)'], ['Showing'], ['Last updated'], ['Problems']]).setFontWeight('bold');
+  payroll.getRange(PAYROLL_FIRST_ROW - 1, 1, 1, 4)
+    .setValues([['Name', 'Hours', 'Pay rate', 'Pay before taxes']]).setFontWeight('bold');
+  payroll.setColumnWidth(1, 230);
   updatePayroll();
 }
 
@@ -306,17 +320,22 @@ function updatePayroll() {
 
   const lastOld = payroll.getLastRow();
   if (lastOld >= PAYROLL_FIRST_ROW) payroll.getRange(PAYROLL_FIRST_ROW, 1, lastOld - PAYROLL_FIRST_ROW + 1, 4).clearContent();
-  payroll.getRange(3, 2).setValue(new Date());
+  payroll.getRange(3, 2).setNumberFormat('m/d/yyyy h:mm am/pm').setValue(new Date());
 
-  const weekStart = normalizeDate(payroll.getRange(1, 2).getDisplayValue());
+  // Weeks run Sunday to Saturday. A blank B1 follows the current week by itself.
+  const typedWeek = String(payroll.getRange(1, 2).getDisplayValue()).trim();
+  const today = new Date();
+  const weekStart = typedWeek
+    ? normalizeDate(typedWeek)
+    : toIsoDate(new Date(today.getFullYear(), today.getMonth(), today.getDate() - today.getDay()));
   if (!weekStart) {
     payroll.getRange(2, 2).setValue('');
-    payroll.getRange(4, 2).setValue('Week starting (cell B1) needs a date, like 11/8/2026. Nothing was calculated.');
+    payroll.getRange(4, 2).setValue('Cell B1 needs a date, like 11/8/2026, or leave it blank for this week. Nothing was calculated.');
     return;
   }
   const parts = weekStart.split('-').map(Number);
   const weekEnd = toIsoDate(new Date(parts[0], parts[1] - 1, parts[2] + 6));
-  payroll.getRange(2, 2).setNumberFormat('@').setValue(weekEnd);
+  payroll.getRange(2, 2).setNumberFormat('@').setValue(weekStart + ' to ' + weekEnd);
 
   // One line per person, grouped ignoring capitals so a retyped name still adds up to the same person.
   const lines = {};

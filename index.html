@@ -199,18 +199,49 @@
   .entry-actions { display: flex; gap: 8px; }
   .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 
-  dialog {
-    width: min(460px, calc(100vw - 32px));
-    border: 0;
+  /* A plain overlay rather than the built-in dialog box, which iPads on iOS 15.3 or older don't have. */
+  .modal-bg {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(20, 16, 30, .55);
+  }
+  .modal {
+    width: 100%;
+    max-width: 460px;
+    max-height: 100%;
+    overflow-y: auto;
     border-radius: var(--radius);
     padding: 20px;
+    background: var(--card);
     color: var(--ink);
   }
-  dialog::backdrop { background: rgba(20, 16, 30, .55); }
-  dialog p { margin: 0 0 14px; white-space: pre-line; }
-  dialog input { margin-bottom: 16px; }
+  .modal p { margin: 0 0 14px; white-space: pre-line; }
+  .modal input { margin-bottom: 16px; }
   /* OK comes first in the page order so the keyboard's Go key means OK, and is drawn on the right. */
   .dialog-actions { display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 10px; }
+
+  /* Safari before 14.1 ignores gap between flexbox items, so these get real margins there instead. */
+  .no-flex-gap .names > *,
+  .no-flex-gap .actions > *,
+  .no-flex-gap .form-actions > *,
+  .no-flex-gap .week-bar > *,
+  .no-flex-gap .entry > *,
+  .no-flex-gap .entry-actions > *,
+  .no-flex-gap .banner > * { margin: 0 10px 10px 0; }
+  .no-flex-gap .dialog-actions > * { margin: 0 0 10px 10px; }
+  .no-flex-gap nav > * { margin-right: 4px; }
+  .no-flex-gap .brand > * { margin-right: 12px; }
+  .no-flex-gap .preview > * { margin-right: 10px; }
+  .no-flex-gap #lang-btn { margin-right: 0; }
+  .no-flex-gap .week-bar h1 { margin: 0 auto 10px 0; }
 
   #toast {
     position: fixed;
@@ -297,7 +328,6 @@
       <button type="button" class="btn small" id="week-now" data-t="thisWeek"></button>
       <button type="button" class="btn small" id="week-next" data-t="next"></button>
     </div>
-    <p class="form-error" id="week-error" role="alert" hidden></p>
     <p class="form-error" id="week-bad-rows" role="alert" hidden></p>
     <div class="card">
       <h2 data-t="totals"></h2>
@@ -305,6 +335,7 @@
       <div class="actions">
         <button type="button" class="btn primary" id="export-week" data-t="exportWeek"></button>
       </div>
+      <p class="muted" id="export-note" data-t="exportNotHere" style="margin:12px 0 0" hidden></p>
     </div>
     <div class="card">
       <h2 data-t="allEntries"></h2>
@@ -331,16 +362,16 @@
   </section>
 </main>
 
-<dialog id="dialog">
-  <form method="dialog">
+<div class="modal-bg" id="dialog" hidden>
+  <form class="modal" id="dialog-form" role="dialog" aria-modal="true" aria-labelledby="dialog-message" novalidate>
     <p id="dialog-message"></p>
     <input type="text" class="pin" id="dialog-pin" aria-labelledby="dialog-message" inputmode="numeric" maxlength="4" autocomplete="off" autocorrect="off" spellcheck="false" hidden>
     <div class="dialog-actions">
-      <button class="btn primary" id="dialog-ok" value="ok">OK</button>
-      <button class="btn" value="cancel" data-t="cancel"></button>
+      <button type="submit" class="btn primary" id="dialog-ok">OK</button>
+      <button type="button" class="btn" id="dialog-cancel" data-t="cancel"></button>
     </div>
   </form>
-</dialog>
+</div>
 <div id="toast" role="status" hidden></div>
 
 <script>
@@ -419,6 +450,7 @@ const TEXT = {
     next: 'Next ›',
     totals: 'Totals',
     exportWeek: 'Save this week as a spreadsheet',
+    exportNotHere: 'To get these hours as a spreadsheet, open the Google Sheet on a computer and use File, then Download.',
     exportFailed: "This device couldn't create the file. No hours were lost. They're all in the Google Sheet, and you can download them from there on a computer using File, then Download.\n\nDetails: {problem}",
     allEntries: 'All entries this week',
     name: 'Name',
@@ -434,6 +466,7 @@ const TEXT = {
     edit: 'Edit',
     delete: 'Delete',
     deleteQuestion: "Delete this entry?\n\n{summary}\n\nEnter {name}'s PIN to confirm.",
+    deleting: 'Deleting…',
     deleted: 'Entry deleted',
     deleteNeedsPin: 'That entry was not deleted. A 4-digit PIN is needed.',
     namesAndPins: 'Names and PINs',
@@ -509,6 +542,7 @@ const TEXT = {
     next: 'Siguiente ›',
     totals: 'Totales',
     exportWeek: 'Guardar esta semana como hoja de cálculo',
+    exportNotHere: 'Para obtener estas horas en una hoja de cálculo, abre la hoja de Google en una computadora y usa Archivo y luego Descargar.',
     exportFailed: 'Este dispositivo no pudo crear el archivo. No se perdió ninguna hora. Todas están en la hoja de Google, y puedes descargarlas desde allí en una computadora con Archivo y luego Descargar.\n\nDetalles: {problem}',
     allEntries: 'Todos los registros de esta semana',
     name: 'Nombre',
@@ -524,6 +558,7 @@ const TEXT = {
     edit: 'Editar',
     delete: 'Borrar',
     deleteQuestion: '¿Borrar este registro?\n\n{summary}\n\nEscribe el PIN de {name} para confirmar.',
+    deleting: 'Borrando…',
     deleted: 'Registro borrado',
     deleteNeedsPin: 'El registro no se borró. Se necesita un PIN de 4 dígitos.',
     namesAndPins: 'Nombres y PIN',
@@ -567,7 +602,7 @@ function applyLanguage() {
   $('lang-btn').lang = lang === 'en' ? 'es' : 'en';
   $('log-title').textContent = t(editingId ? 'editTitle' : 'logTitle');
   $('save-btn').textContent = t(saving ? 'saving' : (editingId ? 'saveChanges' : 'saveHours'));
-  ['form-error', 'week-error', 'connect-error'].forEach(id => showError(id, ''));
+  ['form-error', 'connect-error'].forEach(id => showError(id, ''));
   renderNameChoices();
   updatePreview();
   if (!$('page-week').hidden) renderWeek();
@@ -655,21 +690,32 @@ function writeStored(key, value) {
 // With wantsPin it resolves to the typed PIN, or null if cancelled. Otherwise it resolves to true or false.
 function ask(message, okLabel, wantsPin) {
   return new Promise(resolve => {
-    const dialog = $('dialog');
     const input = $('dialog-pin');
+    const returnFocusTo = document.activeElement;
+    const finish = ok => {
+      $('dialog').hidden = true;
+      $('dialog-form').onsubmit = null;
+      $('dialog-cancel').onclick = null;
+      $('dialog').onkeydown = null;
+      const pin = input.value;
+      input.value = '';
+      if (returnFocusTo && returnFocusTo.focus) returnFocusTo.focus();
+      resolve(wantsPin ? (ok ? pin : null) : ok);
+    };
+    $('dialog-form').onsubmit = event => {
+      event.preventDefault();
+      finish(true);
+    };
+    $('dialog-cancel').onclick = () => finish(false);
+    $('dialog').onkeydown = event => {
+      if (event.key === 'Escape') finish(false);
+    };
     $('dialog-message').textContent = message;
     $('dialog-ok').textContent = okLabel;
     input.hidden = !wantsPin;
     input.value = '';
-    dialog.returnValue = 'cancel';
-    dialog.addEventListener('close', () => {
-      const ok = dialog.returnValue === 'ok';
-      const pin = input.value;
-      input.value = '';
-      resolve(wantsPin ? (ok ? pin : null) : ok);
-    }, { once: true });
-    dialog.showModal();
-    if (wantsPin) input.focus();
+    $('dialog').hidden = false;
+    (wantsPin ? input : $('dialog-ok')).focus();
   });
 }
 
@@ -941,20 +987,22 @@ async function deleteEntry(id) {
   const summary = `${entry.name}, ${fmtDay(parseDate(entry.date))}, ${t('timeRange', { start: fmtTime(entry.start), end: fmtTime(entry.end) })}`;
   const pin = await ask(t('deleteQuestion', { summary, name: entry.name }), t('delete'), true);
   if (pin === null) return;
-  showError('week-error', '');
   if (!/^\d{4}$/.test(pin.trim())) {
-    showError('week-error', t('deleteNeedsPin'));
+    await ask(t('deleteNeedsPin'), 'OK');
     return;
   }
+  toast(t('deleting'));
   try {
     applyData(await api('delete', { id, pin: pin.trim() }));
     toast(t('deleted'));
   } catch (err) {
+    $('toast').hidden = true;
     if (err.code === 'access') {
       connectAgain();
       return;
     }
-    showError('week-error', err.code === 'network' ? t('errNetworkDelete') : errorMessage(err, entry.name));
+    // Shown as a pop-up because the entries are far down the page, where a message at the top would go unseen.
+    await ask(err.code === 'network' ? t('errNetworkDelete') : errorMessage(err, entry.name), 'OK');
   }
 }
 
@@ -980,6 +1028,10 @@ function renderWeek() {
   $('week-title').textContent = fmtRange(viewWeek, t('locale'));
   $('week-now').disabled = toDateStr(viewWeek) === toDateStr(weekStartOf(new Date()));
   $('export-week').disabled = entries.length === 0;
+  // iPads on iOS 14 or older can't hand a file from a web page to the share sheet, so the button could only fail there.
+  const canSave = !isAppleTablet() || Boolean(navigator.canShare);
+  $('export-week').hidden = !canSave;
+  $('export-note').hidden = canSave;
   // A row the app can't read would make someone's pay total wrong without this warning.
   showError('week-bad-rows', state.badRows.length ? t('badRows', { rows: state.badRows.join(', ') }) : '');
 
@@ -1152,6 +1204,16 @@ document.addEventListener('visibilitychange', () => {
   }
   if (Date.now() - state.loadedAt > REFRESH_AFTER_MS) refresh();
 });
+
+// A flex column with a 1px gap between empty items is 1px tall only where flexbox gap works.
+(function detectFlexGap() {
+  const probe = document.createElement('div');
+  probe.style.cssText = 'display:flex;flex-direction:column;row-gap:1px;position:absolute';
+  probe.innerHTML = '<div></div><div></div>';
+  document.body.appendChild(probe);
+  if (probe.scrollHeight !== 1) document.documentElement.classList.add('no-flex-gap');
+  document.body.removeChild(probe);
+})();
 
 if (readStored(LANG_KEY) === 'es') lang = 'es';
 const savedWeekStart = Number(readStored(WEEK_START_KEY));
